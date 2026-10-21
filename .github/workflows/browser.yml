@@ -18,6 +18,8 @@ jobs:
           bundler-cache: true
       - uses: browser-actions/setup-chrome@v1
         id: setup-chrome
+        with:
+          chrome-version: stable
       - name: Click through the admin
         run: bundle exec rake test:browser
         env:

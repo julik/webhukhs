@@ -99,7 +99,13 @@ class AdminClickThrough < ActiveSupport::TestCase
     assert_includes @browser.current_url, "direction=asc"
     assert_equal "the-failed-one", texts("tbody tr td:nth-child(5)").first
 
-    @browser.at_css("select[name=status]").select("error")
+    # Not Ferrum's Node#select: it blanks the select by assigning it `undefined` first, which
+    # left it blank on the Chromium snapshot CI got
+    @browser.execute(<<~JS)
+      const select = document.querySelector("select[name=status]")
+      select.value = "error"
+      select.dispatchEvent(new Event("change", {bubbles: true}))
+    JS
     assert_equal "error", @browser.evaluate("document.querySelector('select[name=status]').value")
     click_and_wait_for_page(@browser.at_css("form.filters input[type=submit]"))
     assert_equal ["the-failed-one"], texts("tbody tr td:nth-child(5)")
