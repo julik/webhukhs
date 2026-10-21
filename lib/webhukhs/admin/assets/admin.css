@@ -15,6 +15,8 @@
   --color-bg-header: #262626;
   --color-text-header: #ffffff;
   --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-bg-hover: #eef4fc;
   --color-link: #0969da;
 
   --color-ok-bg: #dff0d8;
@@ -38,6 +40,8 @@
     --color-bg-badge: #262626;
     --color-bg-header: #0a0a0a;
     --color-border: #333333;
+    --color-border-strong: #474747;
+    --color-bg-hover: #1c2a3d;
     --color-link: #58a6ff;
 
     --color-ok-bg: #16301a;
@@ -135,23 +139,58 @@ p.muted {
   margin-bottom: 12px;
 }
 
-/* Filters */
+/* Filters - one pill of uniformly sized controls */
 .filters {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  display: inline-flex;
   margin: 16px 0;
 }
-.filters label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
+.filters > select,
+.filters > input[type="submit"],
+.filters > a {
+  position: relative;
+  height: 30px;
+  margin: 0 0 0 -1px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 28px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  cursor: pointer;
 }
-.filters input[type="submit"] {
-  padding: 3px 12px;
+.filters > select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23737373' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.filters > select:first-of-type {
+  margin-left: 0;
+  border-radius: 15px 0 0 15px;
+  padding-left: 16px;
+}
+.filters > a {
+  border-radius: 0 15px 15px 0;
+  padding-right: 16px;
+  text-decoration: none;
+}
+.filters > input[type="submit"] {
+  font-weight: 500;
+}
+.filters > :hover {
+  background-color: var(--color-bg-subtle);
+}
+/* A select narrowing the list is tinted, so an active filter does not read as "any" */
+.filters > select:has(option:checked:not([value=""])) {
+  background-color: var(--color-bg-hover);
+}
+.filters > :focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--color-link);
+  outline-offset: -1px;
 }
 
 /*
@@ -191,6 +230,27 @@ p.muted {
 .admin-table tbody tr:nth-child(even) {
   background: var(--color-bg-subtle);
 }
+/* Rows with a .row-link are clickable as a whole: the link's ::after covers the row */
+.admin-table tbody tr:has(> td > .row-link) {
+  position: relative;
+  cursor: pointer;
+}
+.admin-table tbody tr:has(> td > .row-link):hover {
+  background: var(--color-bg-hover);
+}
+.admin-table tbody tr:has(> td > .row-link:focus-visible) {
+  outline: 2px solid var(--color-link);
+  outline-offset: -2px;
+}
+.row-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.row-link:focus-visible {
+  outline: none;
+}
+
 .admin-table .empty {
   text-align: center;
   color: var(--color-text-muted);

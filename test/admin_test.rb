@@ -20,7 +20,7 @@ class AdminTest < ActionDispatch::IntegrationTest
   end
 
   def listed_event_ids
-    css_select("table.admin-table tbody tr td:nth-child(4) code").map(&:text)
+    css_select("table.admin-table tbody tr td:nth-child(5) code").map(&:text)
   end
 
   test "lists webhooks newest first by default" do
@@ -31,6 +31,8 @@ class AdminTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal ["new", "old"], listed_event_ids
+    # The whole row is the link, so it has to be there in the first cell
+    assert_select "tbody tr td:first-child a.row-link[href^='/admin/received_webhooks/']", count: 2
     assert_select "th a.sort-link[href=?]", "/admin/received_webhooks?direction=asc&sort=created_at", text: "Received ▼"
     assert_select "th a.sort-link span.sort-arrow", text: "▼", count: 1
     assert_select "th a.sort-link[href=?]", "/admin/received_webhooks?direction=desc&sort=status", text: "Status"
@@ -103,6 +105,10 @@ class AdminTest < ActionDispatch::IntegrationTest
 
     handlers = css_select("select[name=handler] option").map { |option| option["value"] }
     assert_equal ["", *Webhukhs.configuration.active_handlers.values.uniq.sort], handlers
+    assert_select "select[name=handler] option[value='']", text: "Any handler"
+    assert_select "select[name=status] option[value='']", text: "Any status"
+    # Clearing the filters keeps the sort
+    assert_select "form.filters a[href=?]", "/admin/received_webhooks?direction=desc&sort=created_at", text: "Clear"
     assert_select "select[name=handler] option[selected]", text: "PrivateHandler"
 
     statuses = css_select("select[name=status] option").map { |option| option["value"] }

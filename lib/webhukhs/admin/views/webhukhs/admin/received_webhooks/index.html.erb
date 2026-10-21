@@ -4,18 +4,10 @@
 <%= form_tag received_webhooks_path, method: :get, class: "filters" do %>
   <%= hidden_field_tag :sort, @sort, id: nil %>
   <%= hidden_field_tag :direction, @direction, id: nil %>
-  <label>
-    Handler
-    <%= select_tag :handler, options_for_select([["All", ""]] + handler_options, params[:handler]) %>
-  </label>
-  <label>
-    Status
-    <%= select_tag :status, options_for_select([["All", ""]] + status_options.map { |status, _| [status.humanize, status] }, params[:status]) %>
-  </label>
-  <span>
-    <%= submit_tag "Filter", name: nil %>
-    <%= link_to "Clear", received_webhooks_path %>
-  </span>
+  <%= select_tag :handler, options_for_select([["Any handler", ""]] + handler_options, params[:handler]), "aria-label": "Handler" %>
+  <%= select_tag :status, options_for_select([["Any status", ""]] + status_options.map { |status, _| [status.humanize, status] }, params[:status]), "aria-label": "Status" %>
+  <%= submit_tag "Filter", name: nil %>
+  <%= link_to "Clear", received_webhooks_path(sort: @sort, direction: @direction) %>
 <% end %>
 
 <%
@@ -27,14 +19,15 @@
     ["Updated", "updated_at"]
   ].map { |label, column| sort_link(label, column, sort: @sort, direction: @direction) }
 %>
-<%= admin_table(columns + ["Id"], @webhooks) do |webhook|
+<%# The id cell carries the link, and the CSS stretches it over the whole row %>
+<%= admin_table(["Id"] + columns, @webhooks) do |webhook|
   [
+    link_to(tag.code(webhook.id, class: "cell-ellipsis cell-id", title: webhook.id), received_webhook_path(webhook), class: "row-link"),
     time_tag(webhook.created_at, webhook.created_at.iso8601),
     webhook.handler_module_name,
     tag.span(webhook.status, class: ["badge", webhook.status_class]),
     tag.code(webhook.handler_event_id, class: "cell-ellipsis", title: webhook.handler_event_id),
-    time_tag(webhook.updated_at, webhook.updated_at.iso8601),
-    link_to(tag.code(webhook.id, class: "cell-ellipsis cell-id", title: webhook.id), received_webhook_path(webhook))
+    time_tag(webhook.updated_at, webhook.updated_at.iso8601)
   ]
 end %>
 
