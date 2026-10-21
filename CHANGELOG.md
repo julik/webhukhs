@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+## Added
+- An optional, read-only admin engine (`require "webhukhs/admin"`, mount `Webhukhs::Admin::Engine`) to list,
+  sort, filter and inspect received webhooks
+- A dummy app in `test/dummy` and `bin/dev` to try the admin out
+
+## Changed
+- Rails 7.2 or newer is now required (and with it Ruby 3.1), and the test matrix runs Rails 7.2 instead of 7.1
 
 ## 0.7.0
 ## Added

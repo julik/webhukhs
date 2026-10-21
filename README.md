@@ -72,16 +72,62 @@ end
 
 Now you will be able to accept webhooks on `/webhooks/example` path.
 
+## Admin
+
+Webhukhs comes with a read-only admin for looking at the webhooks you have received: a sortable,
+filterable list, and a page per webhook with its body (pretty-printed when it is JSON) and the
+request headers it arrived with. It is not loaded by default - require it in your Gemfile (it has to be
+loaded before the app boots, so `config/routes.rb` is too late):
+
+```ruby
+gem "webhukhs", require: ["webhukhs", "webhukhs/admin"]
+```
+
+and mount it:
+
+```ruby
+# config/routes.rb
+Rails.application.routes.draw do
+  mount Webhukhs::Admin::Engine, at: "/admin/webhooks"
+end
+```
+
+The admin does no authentication of its own, and webhook bodies tend to carry personal data and
+secrets - so mount it behind whatever guards the rest of your admin. For example, with Devise:
+
+```ruby
+authenticate :user, ->(user) { user.admin? } do
+  mount Webhukhs::Admin::Engine, at: "/admin/webhooks"
+end
+```
+
+or with HTTP basic auth:
+
+```ruby
+webhukhs_admin = Rack::Builder.new do
+  use Rack::Auth::Basic do |username, password|
+    ActiveSupport::SecurityUtils.secure_compare(username, ENV.fetch("ADMIN_USER")) &
+      ActiveSupport::SecurityUtils.secure_compare(password, ENV.fetch("ADMIN_PASSWORD"))
+  end
+  run Webhukhs::Admin::Engine
+end
+mount webhukhs_admin, at: "/admin/webhooks"
+```
+
+The admin brings its own CSS and JS, served by [Assiette](https://github.com/julik/assiette) from
+inside the engine - it does not touch your asset pipeline and needs no build step.
+
+To try it out, run `bin/dev` from a checkout of this repository. It starts the app in `test/dummy`
+with some webhooks seeded, and the admin at http://localhost:3000/admin/webhukhs.
+
 ## More Examples
 - `example` folder contains a demo app with engine fully configured.
 - We provide a number of webhook handlers which demonstrate certain features of Webhukhs. You will find them in `handler-examples`.
 
 ## Requirements
 
-This project depends on two dependencies:
-
-- Ruby >= 3.0
-- Rails >= 7.0
+- Ruby >= 3.1
+- Rails >= 7.2
 
 ## Error reporter
 

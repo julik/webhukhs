@@ -1,0 +1,362 @@
+/* Webhukhs admin - vanilla CSS, system fonts only */
+
+:root {
+  color-scheme: light dark;
+
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --color-text: #404040;
+  --color-text-secondary: #737373;
+  --color-text-muted: #a3a3a3;
+  --color-bg: #ffffff;
+  --color-bg-subtle: #fafafa;
+  --color-bg-badge: #f5f5f5;
+  --color-bg-header: #262626;
+  --color-text-header: #ffffff;
+  --color-border: #e5e5e5;
+  --color-link: #0969da;
+
+  --color-ok-bg: #dff0d8;
+  --color-ok-border: #b6ddab;
+  --color-ok-text: #3c763d;
+  --color-bad-bg: #f2dede;
+  --color-bad-border: #e2c2c2;
+  --color-bad-text: #a94442;
+  --color-waiting-bg: #fcf8e3;
+  --color-waiting-border: #e8dfb4;
+  --color-waiting-text: #8a6d3b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: #e5e5e5;
+    --color-text-secondary: #a3a3a3;
+    --color-text-muted: #737373;
+    --color-bg: #171717;
+    --color-bg-subtle: #1f1f1f;
+    --color-bg-badge: #262626;
+    --color-bg-header: #0a0a0a;
+    --color-border: #333333;
+    --color-link: #58a6ff;
+
+    --color-ok-bg: #16301a;
+    --color-ok-border: #2c5a33;
+    --color-ok-text: #8fd694;
+    --color-bad-bg: #3a1a1a;
+    --color-bad-border: #6b2e2e;
+    --color-bad-text: #f19a9a;
+    --color-waiting-bg: #33290f;
+    --color-waiting-border: #5f4d1d;
+    --color-waiting-text: #e6c66e;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* Header */
+.admin-header {
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  background: var(--color-bg-header);
+  color: var(--color-text-header);
+  padding: 10px 20px;
+}
+.admin-header a {
+  color: var(--color-text-header);
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 16px;
+}
+h2 {
+  font-size: 1.1rem;
+  margin: 24px 0 8px;
+}
+
+.muted {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: normal;
+}
+p.muted {
+  max-width: 44rem;
+}
+
+.flash {
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  max-width: 44rem;
+}
+.flash.alert {
+  background: var(--color-bad-bg);
+  color: var(--color-bad-text);
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 16px 0;
+}
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.filters input[type="submit"] {
+  padding: 3px 12px;
+}
+
+/*
+ * The frame every admin_table sits in. Cells are nowrap, so one long column makes the
+ * table wider than `main` - the overflow is the container's, so the table scrolls inside
+ * the page instead of moving it.
+ */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-table th,
+.admin-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.admin-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.admin-table thead th {
+  background: var(--color-bg-subtle);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.admin-table tbody tr:nth-child(even) {
+  background: var(--color-bg-subtle);
+}
+.admin-table .empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  height: 165px;
+}
+
+.sort-link {
+  color: inherit;
+}
+.sort-arrow {
+  font-size: 10px;
+}
+
+/* Key-value table on the detail page */
+.attr-scroll {
+  width: fit-content;
+  min-width: min(700px, 100%);
+}
+.attr-table th {
+  width: 200px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Values that are long, opaque and only interesting at their head. The full value is in the title */
+.cell-ellipsis {
+  display: inline-block;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.cell-id {
+  max-width: 14ch;
+}
+
+.header-value {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--color-bg-badge);
+  border: 1px solid var(--color-border);
+}
+h1 .badge {
+  vertical-align: middle;
+}
+.badge.status-ok {
+  background: var(--color-ok-bg);
+  border-color: var(--color-ok-border);
+  color: var(--color-ok-text);
+}
+.badge.status-bad {
+  background: var(--color-bad-bg);
+  border-color: var(--color-bad-border);
+  color: var(--color-bad-text);
+}
+.badge.status-waiting {
+  background: var(--color-waiting-bg);
+  border-color: var(--color-waiting-border);
+  color: var(--color-waiting-text);
+}
+
+/* Body viewer */
+.body-detail {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 70vh;
+}
+.body-detail code {
+  font-size: 12px;
+  white-space: pre;
+}
+/* As sent, a body is very often one enormous line */
+.body-raw code {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tabs [role="tabpanel"] .body-detail {
+  border-top-left-radius: 0;
+}
+.tab-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.tab-bar [role="tab"] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  padding: 4px 12px;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.tab-bar [role="tab"][aria-selected="true"] {
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border-color: var(--color-border);
+  position: relative;
+}
+.btn-copy-panel {
+  font: inherit;
+  font-size: 12px;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  cursor: pointer;
+}
+.btn-copy-panel.copied {
+  color: var(--color-ok-text);
+}
+
+/* Copy button */
+.btn-copy {
+  display: inline-block;
+  vertical-align: middle;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  background-color: var(--color-text-muted);
+  cursor: pointer;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.btn-copy:hover {
+  background-color: var(--color-text);
+}
+.btn-copy.copied {
+  background-color: var(--color-ok-text);
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  gap: 16px;
+  margin: 8px 0 24px;
+}
+.pagination a {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+.pagination a:hover {
+  background: var(--color-bg-subtle);
+  text-decoration: none;
+}

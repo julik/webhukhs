@@ -1,0 +1,55 @@
+<% content_for :title, "Webhook #{@webhook.id}" %>
+<nav class="breadcrumb">
+  <%= link_to "Received webhooks", received_webhooks_path %> / <code><%= @webhook.id %></code>
+</nav>
+
+<h1><%= @webhook.handler_module_name %> <span class="badge <%= @webhook.status_class %>"><%= @webhook.status %></span></h1>
+
+<h2>Attributes</h2>
+<div class="table-scroll attr-scroll">
+  <table class="admin-table attr-table">
+    <tbody>
+      <tr><th>Id</th><td><code><%= @webhook.id %></code> <%= copy_button(@webhook.id.to_s) %></td></tr>
+      <tr><th>Handler</th><td><code><%= @webhook.handler_module_name %></code></td></tr>
+      <tr><th>Event id</th><td><code><%= @webhook.handler_event_id %></code> <%= copy_button(@webhook.handler_event_id) %></td></tr>
+      <tr><th>Status</th><td><span class="badge <%= @webhook.status_class %>"><%= @webhook.status %></span></td></tr>
+      <tr><th>Received</th><td><%= time_tag(@webhook.created_at, @webhook.created_at.iso8601) %></td></tr>
+      <tr><th>Updated</th><td><%= time_tag(@webhook.updated_at, @webhook.updated_at.iso8601) %></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>Body <span class="muted">(<%= number_to_human_size(@webhook.body.bytesize) %>)</span></h2>
+<% if (pretty_json = @webhook.pretty_json) %>
+  <div class="tabs">
+    <div class="tab-bar">
+      <div role="tablist" aria-label="Body">
+        <button type="button" role="tab" id="body-tab-pretty" aria-controls="body-pretty" aria-selected="true">Pretty</button>
+        <button type="button" role="tab" id="body-tab-raw" aria-controls="body-raw" aria-selected="false" tabindex="-1">As sent</button>
+      </div>
+      <button type="button" class="btn-copy-panel" title="Copy the visible body to the clipboard">Copy</button>
+    </div>
+    <div role="tabpanel" id="body-pretty" aria-labelledby="body-tab-pretty">
+      <pre class="body-detail"><code><%= pretty_json %></code></pre>
+    </div>
+    <div role="tabpanel" id="body-raw" aria-labelledby="body-tab-raw" hidden>
+      <pre class="body-detail body-raw"><code><%= @webhook.body_text %></code></pre>
+    </div>
+  </div>
+<% else %>
+  <p class="flash alert">
+    This body is not valid JSON, so it is shown as it was sent - with anything that is not
+    valid UTF-8 replaced by �.
+  </p>
+  <pre class="body-detail body-raw"><code><%= @webhook.body_text %></code></pre>
+<% end %>
+
+<h2>Request headers</h2>
+<p class="muted">
+  As presented by the web server and any proxies in front of it.
+  <code>action_dispatch.request.path_parameters</code> is not a header, but the parameters
+  the router matched for the request.
+</p>
+<%= admin_table(["Header", "Value"], @webhook.header_rows) do |name, value|
+  [tag.code(name), tag.code(value, class: "header-value")]
+end %>

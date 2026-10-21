@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= content_for?(:title) ? "#{yield(:title)} · Webhukhs" : "Webhukhs" %></title>
+  <link rel="icon" href="data:,">
+  <%= assiette_stylesheet_tag "/admin.css" %>
+  <script type="module" src="<%= assiette_asset_path "/admin.js" %>" integrity="<%= assiette_asset_integrity "/admin.js" %>" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header class="admin-header">
+    <strong><%= link_to "Webhukhs", root_path %></strong>
+    <nav>
+      <%= link_to "Received webhooks", received_webhooks_path %>
+    </nav>
+  </header>
+  <main>
+    <%= yield %>
+  </main>
+</body>
+</html>

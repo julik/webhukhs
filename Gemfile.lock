@@ -2,7 +2,8 @@ PATH
   remote: .
   specs:
     webhukhs (0.7.0)
-      rails (>= 7.0)
+      assiette (~> 0.6)
+      rails (>= 7.2)
       state_machine_enum
 
 GEM
@@ -86,6 +87,8 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
+    assiette (0.6.1)
+      actionpack (>= 7.2)
     ast (2.4.3)
     base64 (0.3.0)
     bigdecimal (4.0.1)
@@ -177,6 +180,8 @@ GEM
     psych (5.3.1)
       date
       stringio
+    puma (8.0.2)
+      nio4r (~> 2.0)
     racc (1.8.1)
     rack (3.2.4)
     rack-session (2.1.1)
@@ -324,6 +329,7 @@ DEPENDENCIES
   minitest-strict (~> 1.0)
   mutant
   mutant-minitest
+  puma
   rake (~> 13.0)
   simplecov (~> 0.22)
   sprockets-rails
@@ -346,6 +352,7 @@ CHECKSUMS
   activestorage (8.1.1) sha256=bc01d8b4c55e309a0a2e218bfe502c382c9f232e28b1f4b0adc9d8719d2bf28d
   activesupport (8.1.1) sha256=5e92534e8d0c8b8b5e6b16789c69dbea65c1d7b752269f71a39422e9546cea67
   appraisal (2.5.0) sha256=36989221be127913b0dba8d114da2001e6b2dceea7bd4951200eaba764eed3ce
+  assiette (0.6.1) sha256=e0508d01d049c9f494fb87459b6a897fbb751fd5106714ee218bb45eaeaa94d0
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bigdecimal (4.0.1) sha256=8b07d3d065a9f921c80ceaea7c9d4ae596697295b584c296fe599dd0ad01c4a7
@@ -396,6 +403,7 @@ CHECKSUMS
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193
   prism (1.7.0) sha256=10062f734bf7985c8424c44fac382ac04a58124ea3d220ec3ba9fe4f2da65103
   psych (5.3.1) sha256=eb7a57cef10c9d70173ff74e739d843ac3b2c019a003de48447b2963d81b1974
+  puma (8.0.2) sha256=c8ed871dfbbe66448ea9ffd46692342d9804d4071522b52b5331b7b6e7b686fb
   racc (1.8.1) sha256=4a7f6929691dbec8b5209a0b373bc2614882b55fc5d2e447a21aaa691303d62f
   rack (3.2.4) sha256=5d74b6f75082a643f43c1e76b419c40f0e5527fcfee1e669ac1e6b73c0ccb6f6
   rack-session (2.1.1) sha256=0b6dc07dea7e4b583f58a48e8b806d4c9f1c6c9214ebc202ec94562cbea2e4e9

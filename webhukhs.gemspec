@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = "Webhukhs is a Rails engine for processing webhooks from various services. Engine saves webhook in database first and later processes in async job."
   spec.homepage = "https://github.com/skatkov/webhukhs"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.0"
+  spec.required_ruby_version = ">= 3.1"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
@@ -28,7 +28,8 @@ Gem::Specification.new do |spec|
   end
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "rails", ">= 7.0"
+  spec.add_dependency "rails", ">= 7.2"
+  spec.add_dependency "assiette", "~> 0.6"
   spec.add_dependency "state_machine_enum"
   spec.add_development_dependency "appraisal"
   spec.add_development_dependency "rake", "~> 13.0"

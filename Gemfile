@@ -14,3 +14,6 @@ gem "mutant-minitest"
 gem "simplecov", "~> 0.22", require: false
 
 gem "minitest-strict", "~> 1.0"
+
+# For the dummy app under test/dummy (see bin/dev)
+gem "puma"

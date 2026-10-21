@@ -1,0 +1,60 @@
+# frozen_string_literal: true
+
+module Webhukhs
+  module Admin
+    # Lists and shows stored webhooks. Read-only: the lifecycle belongs to Webhukhs::ProcessingJob.
+    class ReceivedWebhooksController < ApplicationController
+      # Webhooks per index page
+      PAGE_SIZE = 50
+      # Columns the index can be sorted by
+      SORTABLE_COLUMNS = %w[created_at updated_at handler_module_name handler_event_id status].freeze
+
+      helper_method :handler_options, :status_options
+
+      # Renders a filtered, sorted page of webhooks.
+      #
+      # @return [void]
+      def index
+        @sort = params[:sort].presence_in(SORTABLE_COLUMNS) || "created_at"
+        @direction = (params[:direction] == "asc") ? "asc" : "desc"
+        @page = [params[:page].to_i, 1].max
+
+        filters = {handler_module_name: params[:handler], status: params[:status]}.compact_blank
+
+        # Most columns have plenty of ties (status especially), and without a tiebreaker the DB is free
+        # to return them in a different order for every OFFSET - rows then repeat or vanish between pages
+        rows = ReceivedWebhook
+          .where(filters)
+          .order(@sort => @direction, :id => @direction)
+          .offset((@page - 1) * PAGE_SIZE)
+          .limit(PAGE_SIZE + 1)
+        @next_page = @page + 1 if rows.length > PAGE_SIZE
+        @webhooks = rows.first(PAGE_SIZE).map { |webhook| ReceivedWebhookPresenter.new(webhook) }
+      end
+
+      # Renders one webhook with its body and headers.
+      #
+      # @return [void]
+      def show
+        @webhook = ReceivedWebhookPresenter.new(ReceivedWebhook.find(params.fetch(:id)))
+      end
+
+      private
+
+      # The configured handlers rather than a DISTINCT over the table, so that a handler which has
+      # not received anything yet can still be picked - "nothing arrived" is an answer too.
+      #
+      # @return [Array<String>] handler class names
+      def handler_options
+        Webhukhs.configuration.active_handlers.values.map(&:to_s).uniq.sort
+      end
+
+      # Statuses a webhook can be in, to filter by.
+      #
+      # @return [Hash{String => String}]
+      def status_options
+        ReceivedWebhook.statuses
+      end
+    end
+  end
+end

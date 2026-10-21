@@ -1,0 +1,48 @@
+<% content_for :title, "Received webhooks" %>
+<h1>Received webhooks</h1>
+
+<%= form_tag received_webhooks_path, method: :get, class: "filters" do %>
+  <%= hidden_field_tag :sort, @sort, id: nil %>
+  <%= hidden_field_tag :direction, @direction, id: nil %>
+  <label>
+    Handler
+    <%= select_tag :handler, options_for_select([["All", ""]] + handler_options, params[:handler]) %>
+  </label>
+  <label>
+    Status
+    <%= select_tag :status, options_for_select([["All", ""]] + status_options.map { |status, _| [status.humanize, status] }, params[:status]) %>
+  </label>
+  <span>
+    <%= submit_tag "Filter", name: nil %>
+    <%= link_to "Clear", received_webhooks_path %>
+  </span>
+<% end %>
+
+<%
+  columns = [
+    ["Received", "created_at"],
+    ["Handler", "handler_module_name"],
+    ["Status", "status"],
+    ["Event id", "handler_event_id"],
+    ["Updated", "updated_at"]
+  ].map { |label, column| sort_link(label, column, sort: @sort, direction: @direction) }
+%>
+<%= admin_table(columns + ["Id"], @webhooks) do |webhook|
+  [
+    time_tag(webhook.created_at, webhook.created_at.iso8601),
+    webhook.handler_module_name,
+    tag.span(webhook.status, class: ["badge", webhook.status_class]),
+    tag.code(webhook.handler_event_id, class: "cell-ellipsis", title: webhook.handler_event_id),
+    time_tag(webhook.updated_at, webhook.updated_at.iso8601),
+    link_to(tag.code(webhook.id, class: "cell-ellipsis cell-id", title: webhook.id), received_webhook_path(webhook))
+  ]
+end %>
+
+<nav class="pagination">
+  <% if @page > 1 %>
+    <%= link_to "← Previous", request.query_parameters.merge("page" => @page - 1), rel: "prev" %>
+  <% end %>
+  <% if @next_page %>
+    <%= link_to "Next →", request.query_parameters.merge("page" => @next_page), rel: "next" %>
+  <% end %>
+</nav>
