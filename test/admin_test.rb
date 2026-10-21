@@ -27,15 +27,15 @@ class AdminTest < ActionDispatch::IntegrationTest
     create_webhook(handler_event_id: "old", created_at: 2.days.ago)
     create_webhook(handler_event_id: "new", created_at: 1.day.ago)
 
-    get "/admin/received_webhooks"
+    get "/admin/received"
 
     assert_response :ok
     assert_equal ["new", "old"], listed_event_ids
     # The whole row is the link, so it has to be there in the first cell
-    assert_select "tbody tr td:first-child a.row-link[href^='/admin/received_webhooks/']", count: 2
-    assert_select "th a.sort-link[href=?]", "/admin/received_webhooks?direction=asc&sort=created_at", text: "Received ▼"
+    assert_select "tbody tr td:first-child a.row-link[href^='/admin/received/']", count: 2
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=asc&sort=created_at", text: "Received ▼"
     assert_select "th a.sort-link span.sort-arrow", text: "▼", count: 1
-    assert_select "th a.sort-link[href=?]", "/admin/received_webhooks?direction=desc&sort=status", text: "Status"
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=desc&sort=status", text: "Status"
   end
 
   test "serves the index at the engine root" do
@@ -51,12 +51,12 @@ class AdminTest < ActionDispatch::IntegrationTest
     create_webhook(handler_event_id: "b", status: "skipped")
     create_webhook(handler_event_id: "a", status: "error")
 
-    get "/admin/received_webhooks", params: {sort: "status", direction: "asc"}
+    get "/admin/received", params: {sort: "status", direction: "asc"}
     assert_equal ["a", "b"], listed_event_ids
     # Clicking the active column again flips the direction
-    assert_select "th a.sort-link[href=?]", "/admin/received_webhooks?direction=desc&sort=status", text: "Status ▲"
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=desc&sort=status", text: "Status ▲"
 
-    get "/admin/received_webhooks", params: {sort: "status", direction: "desc"}
+    get "/admin/received", params: {sort: "status", direction: "desc"}
     assert_equal ["b", "a"], listed_event_ids
   end
 
@@ -67,10 +67,10 @@ class AdminTest < ActionDispatch::IntegrationTest
     second = create_webhook(handler_event_id: "a")
     assert_operator first.id, :<, second.id
 
-    get "/admin/received_webhooks", params: {sort: "handler_module_name", direction: "desc"}
+    get "/admin/received", params: {sort: "handler_module_name", direction: "desc"}
     assert_equal ["a", "z"], listed_event_ids
 
-    get "/admin/received_webhooks", params: {sort: "handler_module_name", direction: "asc"}
+    get "/admin/received", params: {sort: "handler_module_name", direction: "asc"}
     assert_equal ["z", "a"], listed_event_ids
   end
 
@@ -79,7 +79,7 @@ class AdminTest < ActionDispatch::IntegrationTest
     create_webhook(handler_event_id: "new", created_at: 1.day.ago, status: "skipped")
     create_webhook(handler_event_id: "old", created_at: 2.days.ago, status: "error")
 
-    get "/admin/received_webhooks", params: {sort: "no_such_column", direction: "sideways"}
+    get "/admin/received", params: {sort: "no_such_column", direction: "sideways"}
 
     assert_response :ok
     assert_equal ["new", "old"], listed_event_ids
@@ -90,25 +90,25 @@ class AdminTest < ActionDispatch::IntegrationTest
     create_webhook(handler_event_id: "test-error", status: "error")
     create_webhook(handler_event_id: "private-processed", handler_module_name: "PrivateHandler")
 
-    get "/admin/received_webhooks", params: {handler: "WebhookTestHandler"}
+    get "/admin/received", params: {handler: "WebhookTestHandler"}
     assert_equal ["test-error", "test-processed"], listed_event_ids.sort
 
-    get "/admin/received_webhooks", params: {status: "error"}
+    get "/admin/received", params: {status: "error"}
     assert_equal ["test-error"], listed_event_ids
 
-    get "/admin/received_webhooks", params: {handler: "", status: ""}
+    get "/admin/received", params: {handler: "", status: ""}
     assert_equal 3, listed_event_ids.length
   end
 
   test "offers every configured handler and status as a filter" do
-    get "/admin/received_webhooks", params: {handler: "PrivateHandler"}
+    get "/admin/received", params: {handler: "PrivateHandler"}
 
     handlers = css_select("select[name=handler] option").map { |option| option["value"] }
     assert_equal ["", *Webhukhs.configuration.active_handlers.values.uniq.sort], handlers
     assert_select "select[name=handler] option[value='']", text: "Any handler"
     assert_select "select[name=status] option[value='']", text: "Any status"
     # Clearing the filters keeps the sort
-    assert_select "form.filters a[href=?]", "/admin/received_webhooks?direction=desc&sort=created_at", text: "Clear"
+    assert_select "form.filters a[href=?]", "/admin/received?direction=desc&sort=created_at", text: "Clear"
     assert_select "select[name=handler] option[selected]", text: "PrivateHandler"
 
     statuses = css_select("select[name=status] option").map { |option| option["value"] }
@@ -119,7 +119,7 @@ class AdminTest < ActionDispatch::IntegrationTest
     original_handlers = Webhukhs.configuration.active_handlers
     Webhukhs.configuration.active_handlers = {a: WebhookTestHandler, b: "WebhookTestHandler"}
 
-    get "/admin/received_webhooks"
+    get "/admin/received"
 
     handlers = css_select("select[name=handler] option").map { |option| option["value"] }
     assert_equal ["", "WebhookTestHandler"], handlers
@@ -131,16 +131,16 @@ class AdminTest < ActionDispatch::IntegrationTest
     page_size = Webhukhs::Admin::ReceivedWebhooksController::PAGE_SIZE
     (page_size + 1).times { |i| create_webhook(handler_event_id: "evt-#{i}", created_at: i.minutes.ago) }
 
-    get "/admin/received_webhooks", params: {sort: "status"}
+    get "/admin/received", params: {sort: "status"}
     assert_equal page_size, listed_event_ids.length
     assert_equal "evt-#{page_size}", listed_event_ids.first # all ties on status, so by id
     assert_select "a[rel=prev]", count: 0
-    assert_select "a[rel=next][href=?]", "/admin/received_webhooks?page=2&sort=status"
+    assert_select "a[rel=next][href=?]", "/admin/received?page=2&sort=status"
 
-    get "/admin/received_webhooks", params: {sort: "status", page: 2}
+    get "/admin/received", params: {sort: "status", page: 2}
     assert_equal ["evt-0"], listed_event_ids
     assert_select "a[rel=next]", count: 0
-    assert_select "a[rel=prev][href=?]", "/admin/received_webhooks?page=1&sort=status"
+    assert_select "a[rel=prev][href=?]", "/admin/received?page=1&sort=status"
   end
 
   test "loads one row past the page and no more" do
@@ -150,7 +150,7 @@ class AdminTest < ActionDispatch::IntegrationTest
     loaded = 0
     counter = ->(*, payload) { loaded += payload[:record_count] if payload[:class_name] == "Webhukhs::ReceivedWebhook" }
     ActiveSupport::Notifications.subscribed(counter, "instantiation.active_record") do
-      get "/admin/received_webhooks"
+      get "/admin/received"
     end
 
     assert_equal page_size + 1, loaded
@@ -159,7 +159,7 @@ class AdminTest < ActionDispatch::IntegrationTest
   test "shows no next page when the last page is exactly full" do
     Webhukhs::Admin::ReceivedWebhooksController::PAGE_SIZE.times { create_webhook }
 
-    get "/admin/received_webhooks"
+    get "/admin/received"
 
     assert_select "a[rel=next]", count: 0
   end
@@ -167,20 +167,20 @@ class AdminTest < ActionDispatch::IntegrationTest
   test "treats a page below 1 as the first page" do
     create_webhook(handler_event_id: "only")
 
-    get "/admin/received_webhooks", params: {page: -3}
+    get "/admin/received", params: {page: -3}
 
     assert_equal ["only"], listed_event_ids
     assert_select "a[rel=prev]", count: 0
   end
 
   test "drops the page when changing the sort" do
-    get "/admin/received_webhooks", params: {page: 3}
+    get "/admin/received", params: {page: 3}
 
-    assert_select "th a.sort-link[href=?]", "/admin/received_webhooks?direction=desc&sort=status"
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=desc&sort=status"
   end
 
   test "says so when there is nothing to list" do
-    get "/admin/received_webhooks"
+    get "/admin/received"
 
     assert_select "div.table-scroll > table.admin-table > thead > tr > th", count: 6
     assert_select "table.admin-table > tbody > tr > td.empty[colspan='6']", text: "No records."
@@ -203,7 +203,7 @@ class AdminTest < ActionDispatch::IntegrationTest
     create_webhook(handler_event_id: "decoy", body: "not this one")
     webhook = create_webhook(body: '{"event":"thing.happened","data":{"id":1}}')
 
-    get "/admin/received_webhooks/#{webhook.id}"
+    get "/admin/received/#{webhook.id}"
 
     assert_response :ok
     assert_select "h1", text: /WebhookTestHandler/
@@ -219,12 +219,41 @@ class AdminTest < ActionDispatch::IntegrationTest
   test "shows a body that is not JSON as sent, replacing invalid UTF-8" do
     webhook = create_webhook(body: "event=thing&broken=\xFF".b)
 
-    get "/admin/received_webhooks/#{webhook.id}"
+    get "/admin/received/#{webhook.id}"
 
     assert_response :ok
     assert_select "[role=tab]", count: 0
     assert_select ".flash.alert", text: /not valid JSON/
     assert_select "pre.body-raw code", text: "event=thing&broken=\u{FFFD}"
+  end
+
+  test "shows a body over the display limit cut off, without pretty-printing it" do
+    limit = Webhukhs::Admin::ReceivedWebhookPresenter::DISPLAY_LIMIT
+    json = %({"padding":"#{"x" * limit}"})
+    webhook = create_webhook(body: json)
+
+    get "/admin/received/#{webhook.id}"
+
+    assert_response :ok
+    assert_select "[role=tab]", count: 0
+    assert_select ".flash.alert", text: "The body was 256 KB, display is truncated"
+    assert_equal json.byteslice(0, limit), css_select("pre.body-raw code").text
+  end
+
+  test "displays a body of exactly the display limit in full" do
+    limit = Webhukhs::Admin::ReceivedWebhookPresenter::DISPLAY_LIMIT
+    presenter = Webhukhs::Admin::ReceivedWebhookPresenter.new(create_webhook(body: "x" * limit))
+
+    assert_false presenter.truncated?
+    assert_equal limit, presenter.body_text.bytesize
+    assert_true Webhukhs::Admin::ReceivedWebhookPresenter.new(create_webhook(body: "x" * (limit + 1))).truncated?
+  end
+
+  test "replaces a character the display limit cuts through" do
+    limit = Webhukhs::Admin::ReceivedWebhookPresenter::DISPLAY_LIMIT
+    presenter = Webhukhs::Admin::ReceivedWebhookPresenter.new(create_webhook(body: ("x" * (limit - 1)) + "é"))
+
+    assert_equal ("x" * (limit - 1)) + "\u{FFFD}", presenter.body_text
   end
 
   test "decodes the body without touching the stored bytes" do
@@ -243,7 +272,7 @@ class AdminTest < ActionDispatch::IntegrationTest
       "action_dispatch.request.path_parameters" => {"service_id" => "test"}
     })
 
-    get "/admin/received_webhooks/#{webhook.id}"
+    get "/admin/received/#{webhook.id}"
 
     rows = css_select("table.admin-table thead:has(th:contains('Header')) + tbody tr").map do |row|
       row.css("td").map(&:text)
@@ -258,7 +287,7 @@ class AdminTest < ActionDispatch::IntegrationTest
   test "shows webhooks stored before headers were recorded" do
     webhook = create_webhook(request_headers: nil)
 
-    get "/admin/received_webhooks/#{webhook.id}"
+    get "/admin/received/#{webhook.id}"
 
     assert_response :ok
     assert_select "td.empty[colspan='2']", text: "No records."
@@ -267,14 +296,14 @@ class AdminTest < ActionDispatch::IntegrationTest
   test "renders copy buttons for the identifiers" do
     webhook = create_webhook(handler_event_id: "evt_123")
 
-    get "/admin/received_webhooks/#{webhook.id}"
+    get "/admin/received/#{webhook.id}"
 
     assert_select "button.btn-copy[type=button][title='Copy to clipboard'][data-copy=?]", webhook.id.to_s
     assert_select "button.btn-copy[data-copy=?]", "evt_123"
   end
 
   test "locks the pages down with a content security policy" do
-    get "/admin/received_webhooks"
+    get "/admin/received"
 
     assert_equal "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; " \
       "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
@@ -282,7 +311,7 @@ class AdminTest < ActionDispatch::IntegrationTest
   end
 
   test "serves its own assets, fingerprinted, from under the mount point" do
-    get "/admin/received_webhooks"
+    get "/admin/received"
 
     assert_select "link[rel=stylesheet][href^='/admin/admin.css?s='][integrity^='sha256-']"
     assert_select "script[type=module][src^='/admin/admin.js?s='][integrity^='sha256-']"

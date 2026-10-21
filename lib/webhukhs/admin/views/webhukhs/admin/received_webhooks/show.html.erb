@@ -20,7 +20,10 @@
 </div>
 
 <h2>Body <span class="muted">(<%= number_to_human_size(@webhook.body.bytesize) %>)</span></h2>
-<% if (pretty_json = @webhook.pretty_json) %>
+<% if @webhook.truncated? %>
+  <p class="flash alert">The body was <%= number_to_human_size(@webhook.body.bytesize) %>, display is truncated</p>
+  <pre class="body-detail body-raw"><code><%= @webhook.body_text %></code></pre>
+<% elsif (pretty_json = @webhook.pretty_json) %>
   <div class="tabs">
     <div class="tab-bar">
       <div role="tablist" aria-label="Body">
@@ -37,10 +40,7 @@
     </div>
   </div>
 <% else %>
-  <p class="flash alert">
-    This body is not valid JSON, so it is shown as it was sent - with anything that is not
-    valid UTF-8 replaced by �.
-  </p>
+  <p class="flash alert">This body is not valid JSON, so it is shown as it was sent</p>
   <pre class="body-detail body-raw"><code><%= @webhook.body_text %></code></pre>
 <% end %>
 

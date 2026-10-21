@@ -14,6 +14,10 @@ module Webhukhs
         "processing" => "status-waiting"
       }.freeze
 
+      # Bodies larger than this are neither parsed nor shown in full - a browser asked to lay out
+      # a few megabytes of pretty-printed JSON just hangs
+      DISPLAY_LIMIT = 256 * 1024
+
       # CSS class coloring the status badge.
       #
       # @return [String]
@@ -21,12 +25,20 @@ module Webhukhs
         STATUS_CLASSES.fetch(status, "status-neutral")
       end
 
-      # The body is stored as raw bytes and is not necessarily UTF-8, so anything that does not
-      # decode gets replaced with U+FFFD instead of blowing up the view.
+      # Whether the body is too large to display in full.
+      #
+      # @return [Boolean]
+      def truncated?
+        body.bytesize > DISPLAY_LIMIT
+      end
+
+      # The body as text, cut off at DISPLAY_LIMIT bytes. The body is stored as raw bytes and is not
+      # necessarily UTF-8, so anything that does not decode (including a character the cut went through)
+      # gets replaced with U+FFFD instead of blowing up the view.
       #
       # @return [String]
       def body_text
-        String.new(body, encoding: Encoding::UTF_8).scrub
+        String.new(body.byteslice(0, DISPLAY_LIMIT), encoding: Encoding::UTF_8).scrub
       end
 
       # Pretty-printed body, if the body is valid JSON.
