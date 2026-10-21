@@ -8,6 +8,7 @@ require_relative "admin/received_webhook_presenter"
 require_relative "admin/application_controller"
 require_relative "admin/received_webhooks_controller"
 
+# Public namespace for Webhukhs runtime and configuration.
 module Webhukhs
   # Optional, read-only admin UI for received webhooks. It is not loaded by `require "webhukhs"` -
   # require "webhukhs/admin" and mount {Webhukhs::Admin::Engine} yourself, behind your own authentication.

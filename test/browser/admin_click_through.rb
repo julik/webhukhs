@@ -75,6 +75,8 @@ class AdminClickThrough < ActiveSupport::TestCase
     node.scroll_into_view
     node.click
     wait_for("#{label.inspect} to leave #{url}") { @browser.current_url != url }
+    # The URL changes as soon as the navigation commits, while the new document may still be parsing
+    wait_for("the page after #{label.inspect} to load") { @browser.evaluate("document.readyState") == "complete" }
     @browser.network.wait_for_idle
   end
 
@@ -98,6 +100,7 @@ class AdminClickThrough < ActiveSupport::TestCase
     assert_equal "the-failed-one", texts("tbody tr td:nth-child(5)").first
 
     @browser.at_css("select[name=status]").select("error")
+    assert_equal "error", @browser.evaluate("document.querySelector('select[name=status]').value")
     click_and_wait_for_page(@browser.at_css("form.filters input[type=submit]"))
     assert_equal ["the-failed-one"], texts("tbody tr td:nth-child(5)")
     # The sort survives filtering
