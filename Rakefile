@@ -23,4 +23,11 @@ Rake::TestTask.new(:test) do |t|
   end
 end
 
+# Needs Chrome, so it stays out of the default task
+Rake::TestTask.new("test:browser") do |t|
+  t.libs << "test"
+  t.libs << "lib"
+  t.test_files = FileList["test/browser/**/*.rb"]
+end
+
 task default: [:test, :standard]
