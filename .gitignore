@@ -8,11 +8,6 @@
 /tmp/
 
 /log/*.log
-/test/dummy/db/*.sqlite3
-/test/dummy/db/*.sqlite3-*
-/test/dummy/log/*.log
-/test/dummy/storage/
-/test/dummy/tmp/
 
 .DS_Store
 

@@ -7,7 +7,7 @@ This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 ## Added
 - An optional, read-only admin engine (`require "webhukhs/admin"`, mount `Webhukhs::Admin::Engine`) to list,
   sort, filter and inspect received webhooks
-- A dummy app in `test/dummy` and `bin/dev` to try the admin out
+- `bin/dev`, which runs the `example` app - now with the admin mounted, more handlers and seed data
 
 ## Changed
 - Rails 7.2 or newer is now required (and with it Ruby 3.1), and the test matrix runs Rails 7.2 instead of 7.1

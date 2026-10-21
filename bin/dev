@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Runs the dummy app in test/dummy, with the admin at http://localhost:3000/admin/webhukhs
+# Runs the example app, with the admin at http://localhost:3000/admin/webhukhs
 #
-#   bin/dev            # creates and seeds the database on first run
+#   bin/dev            # installs gems, creates and seeds the database on first run
 #   bin/dev --reseed   # throws away all stored webhooks and seeds afresh
 #
 # Deliver a webhook of your own with
@@ -9,7 +9,10 @@
 #   curl -X POST localhost:3000/webhooks/acme -H 'Content-Type: application/json' -d '{"id":"evt_1","type":"hello"}'
 set -euo pipefail
 
-cd "$(dirname "$0")/../test/dummy"
+cd "$(dirname "$0")/../example"
+export BUNDLE_GEMFILE="$PWD/Gemfile"
+
+bundle check > /dev/null || bundle install
 
 if [[ "${1:-}" == "--reseed" ]]; then
   shift

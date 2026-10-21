@@ -115,13 +115,14 @@ mount webhukhs_admin, at: "/admin/webhooks"
 ```
 
 The admin brings its own CSS and JS, served by [Assiette](https://github.com/julik/assiette) from
-inside the engine - it does not touch your asset pipeline and needs no build step.
+inside the engine - it does not touch your asset pipeline (Propshaft, Sprockets or anything else) and needs
+no build step.
 
-To try it out, run `bin/dev` from a checkout of this repository. It starts the app in `test/dummy`
+To try it out, run `bin/dev` from a checkout of this repository. It starts the app in `example`
 with some webhooks seeded, and the admin at http://localhost:3000/admin/webhukhs.
 
 ## More Examples
-- `example` folder contains a demo app with engine fully configured.
+- `example` folder contains a demo app with the engine and the admin fully configured - run it with `bin/dev`.
 - We provide a number of webhook handlers which demonstrate certain features of Webhukhs. You will find them in `handler-examples`.
 
 ## Requirements

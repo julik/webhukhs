@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "../../app/webhooks/webhook_test_handler"
-
 Webhukhs.configure do |config|
   config.active_handlers = {
-    "test-handler" => "WebhookTestHandler"
+    "test-handler" => "WebhookTestHandler",
+    "acme" => "AcmeHandler",
+    "signed" => "SignedHandler",
+    "flaky" => "FlakyHandler"
   }
 end
