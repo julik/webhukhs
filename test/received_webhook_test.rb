@@ -65,6 +65,22 @@ class ReceivedWebhookTest < ActiveSupport::TestCase
     )
   end
 
+  test "request stores the whole body even if the body io was already read" do
+    body_io = StringIO.new("event=paid")
+    body_io.read
+    request = ActionDispatch::Request.new(
+      "CONTENT_TYPE" => "application/x-www-form-urlencoded",
+      "rack.input" => body_io,
+      "action_dispatch.request.path_parameters" => {}
+    )
+    webhook = Webhukhs::ReceivedWebhook.new
+
+    webhook.request = request
+
+    assert_equal "event=paid".b, webhook.body
+    assert_equal 0, body_io.pos
+  end
+
   test "request writer coerces the stored body to binary before type casting" do
     body_io = StringIO.new("payload")
     request = ActionDispatch::Request.new(
