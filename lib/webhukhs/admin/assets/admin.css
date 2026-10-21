@@ -139,7 +139,7 @@ p.muted {
   margin-bottom: 12px;
 }
 
-/* Filters - one pill of uniformly sized controls */
+/* Filters - one group of uniformly sized controls */
 .filters {
   display: inline-flex;
   margin: 16px 0;
@@ -169,11 +169,11 @@ p.muted {
 }
 .filters > select:first-of-type {
   margin-left: 0;
-  border-radius: 15px 0 0 15px;
+  border-radius: 4px 0 0 4px;
   padding-left: 16px;
 }
 .filters > a {
-  border-radius: 0 15px 15px 0;
+  border-radius: 0 4px 4px 0;
   padding-right: 16px;
   text-decoration: none;
 }
@@ -297,7 +297,7 @@ p.muted {
 .badge {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 500;
