@@ -36,4 +36,14 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "standard"
   spec.add_development_dependency "magic_frozen_string_literal"
   spec.add_development_dependency "minitest", "~> 5.0"
+  spec.add_development_dependency "minitest-strict", "~> 1.0"
+  spec.add_development_dependency "sqlite3"
+  spec.add_development_dependency "sprockets-rails"
+  spec.add_development_dependency "yard-lint"
+  spec.add_development_dependency "mutant"
+  spec.add_development_dependency "mutant-minitest"
+  spec.add_development_dependency "simplecov", "~> 0.22"
+  # For the click-through test of the admin, see test/browser
+  spec.add_development_dependency "ferrum", "~> 0.19"
+  spec.add_development_dependency "puma"
 end
