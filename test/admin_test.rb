@@ -38,6 +38,17 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_select "th a.sort-link[href=?]", "/admin/received?direction=desc&sort=status", text: "Status"
   end
 
+  test "offers an auto-refresh switch, off by default, for the listing it refetches" do
+    create_webhook
+
+    get "/admin/received"
+
+    assert_select ".page-heading label.switch input#auto-refresh[type=checkbox][role=switch]:not([checked])"
+    # admin.js swaps this element for the one in the refetched page
+    assert_select "#received-webhooks table.admin-table tbody tr", count: 1
+    assert_select "#received-webhooks nav.pagination"
+  end
+
   test "serves the index at the engine root" do
     create_webhook(handler_event_id: "at-root")
 

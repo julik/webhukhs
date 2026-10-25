@@ -181,4 +181,24 @@ class AdminClickThrough < ActiveSupport::TestCase
     visit "/received/#{large.id}"
     assert_equal "The body was 256 KB, display is truncated", @browser.at_css(".flash.alert").text
   end
+
+  test "picks up new webhooks while auto-refresh is on, and remembers the switch" do
+    create_webhook(handler_event_id: "evt-before")
+
+    visit "/received"
+    switch = -> { @browser.evaluate("document.getElementById('auto-refresh').checked") }
+    refute switch.call
+    @browser.at_css("label.switch").click
+    wait_for("the switch to turn on") { switch.call }
+
+    create_webhook(handler_event_id: "evt-arrived")
+    # One poll interval, with some slack
+    wait_for("the new webhook to show up", timeout: 8) { texts("tbody tr td:nth-child(5)").include?("evt-arrived") }
+    assert_equal ["evt-arrived", "evt-before"], texts("tbody tr td:nth-child(5)")
+
+    visit "/received"
+    assert switch.call, "The switch should stay on after a reload"
+    @browser.at_css("label.switch").click
+    wait_for("the switch to turn off") { !switch.call }
+  end
 end

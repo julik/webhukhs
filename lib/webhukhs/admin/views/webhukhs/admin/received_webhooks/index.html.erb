@@ -1,5 +1,12 @@
 <% content_for :title, "Received webhooks" %>
-<h1>Received webhooks</h1>
+<div class="page-heading">
+  <h1>Received webhooks</h1>
+  <%# Off by default, admin.js remembers the choice and refetches the listing while it is on %>
+  <label class="switch">
+    <input type="checkbox" id="auto-refresh" role="switch">
+    Auto-refresh
+  </label>
+</div>
 
 <%= form_tag received_webhooks_path, method: :get, class: "filters" do %>
   <%= hidden_field_tag :sort, @sort, id: nil %>
@@ -19,6 +26,7 @@
     ["Updated", "updated_at"]
   ].map { |label, column| sort_link(label, column, sort: @sort, direction: @direction) }
 %>
+<div id="received-webhooks">
 <%# The id cell carries the link, and the CSS stretches it over the whole row %>
 <%= admin_table(["Id"] + columns, @webhooks) do |webhook|
   [
@@ -39,3 +47,4 @@ end %>
     <%= link_to "Next →", request.query_parameters.merge("page" => @next_page), rel: "next" %>
   <% end %>
 </nav>
+</div>
