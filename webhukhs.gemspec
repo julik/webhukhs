@@ -44,6 +44,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "mutant-minitest"
   spec.add_development_dependency "simplecov", "~> 0.22"
   # For the click-through test of the admin, see test/browser
-  spec.add_development_dependency "ferrum", "~> 0.19"
+  spec.add_development_dependency "lightpanda", "~> 0.1"
   spec.add_development_dependency "puma"
 end

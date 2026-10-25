@@ -23,7 +23,7 @@ Rake::TestTask.new(:test) do |t|
   end
 end
 
-# Needs Chrome, so it stays out of the default task
+# Needs the Lightpanda browser, so it stays out of the default task
 Rake::TestTask.new("test:browser") do |t|
   t.libs << "test"
   t.libs << "lib"
