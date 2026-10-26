@@ -1,0 +1,334 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+class AdminTest < ActionDispatch::IntegrationTest
+  cover "Webhukhs::Admin*"
+
+  self.app = WebhukhsTestApp
+
+  teardown { Webhukhs::ReceivedWebhook.delete_all }
+
+  def create_webhook(**attributes)
+    Webhukhs::ReceivedWebhook.create!(
+      handler_module_name: "WebhookTestHandler",
+      handler_event_id: SecureRandom.uuid,
+      status: "processed",
+      body: '{"event":"thing.happened"}',
+      **attributes
+    )
+  end
+
+  def listed_event_ids
+    css_select("table.admin-table tbody tr td:nth-child(5) code").map(&:text)
+  end
+
+  test "lists webhooks newest first by default" do
+    create_webhook(handler_event_id: "old", created_at: 2.days.ago)
+    create_webhook(handler_event_id: "new", created_at: 1.day.ago)
+
+    get "/admin/received"
+
+    assert_response :ok
+    assert_equal ["new", "old"], listed_event_ids
+    # The whole row is the link, so it has to be there in the first cell
+    assert_select "tbody tr td:first-child a.row-link[href^='/admin/received/']", count: 2
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=asc&sort=created_at", text: "Received ▼"
+    assert_select "th a.sort-link span.sort-arrow", text: "▼", count: 1
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=desc&sort=status", text: "Status"
+  end
+
+  test "offers an auto-refresh switch, off by default, for the listing it refetches" do
+    create_webhook
+
+    get "/admin/received"
+
+    assert_select ".page-heading label.switch input#auto-refresh[type=checkbox][role=switch]:not([checked])"
+    # admin.js swaps this element for the one in the refetched page
+    assert_select "#received-webhooks table.admin-table tbody tr", count: 1
+    assert_select "#received-webhooks nav.pagination"
+  end
+
+  test "serves the index at the engine root" do
+    create_webhook(handler_event_id: "at-root")
+
+    get "/admin"
+
+    assert_response :ok
+    assert_equal ["at-root"], listed_event_ids
+  end
+
+  test "sorts by a whitelisted column in either direction" do
+    create_webhook(handler_event_id: "b", status: "skipped")
+    create_webhook(handler_event_id: "a", status: "error")
+
+    get "/admin/received", params: {sort: "status", direction: "asc"}
+    assert_equal ["a", "b"], listed_event_ids
+    # Clicking the active column again flips the direction
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=desc&sort=status", text: "Status ▲"
+
+    get "/admin/received", params: {sort: "status", direction: "desc"}
+    assert_equal ["b", "a"], listed_event_ids
+  end
+
+  test "breaks ties by id in the sort direction, so pages do not overlap" do
+    # Event ids run opposite to ids: SQLite walks the dedup index on (handler_module_name,
+    # handler_event_id) to sort by handler, and would order the ties by event id otherwise
+    first = create_webhook(handler_event_id: "z")
+    second = create_webhook(handler_event_id: "a")
+    assert_operator first.id, :<, second.id
+
+    get "/admin/received", params: {sort: "handler_module_name", direction: "desc"}
+    assert_equal ["a", "z"], listed_event_ids
+
+    get "/admin/received", params: {sort: "handler_module_name", direction: "asc"}
+    assert_equal ["z", "a"], listed_event_ids
+  end
+
+  test "ignores sort columns and directions it does not know" do
+    # Created out of order, so that falling back to anything but created_at shows
+    create_webhook(handler_event_id: "new", created_at: 1.day.ago, status: "skipped")
+    create_webhook(handler_event_id: "old", created_at: 2.days.ago, status: "error")
+
+    get "/admin/received", params: {sort: "no_such_column", direction: "sideways"}
+
+    assert_response :ok
+    assert_equal ["new", "old"], listed_event_ids
+  end
+
+  test "filters by handler and status, and treats blank filters as no filter" do
+    create_webhook(handler_event_id: "test-processed")
+    create_webhook(handler_event_id: "test-error", status: "error")
+    create_webhook(handler_event_id: "private-processed", handler_module_name: "PrivateHandler")
+
+    get "/admin/received", params: {handler: "WebhookTestHandler"}
+    assert_equal ["test-error", "test-processed"], listed_event_ids.sort
+
+    get "/admin/received", params: {status: "error"}
+    assert_equal ["test-error"], listed_event_ids
+
+    get "/admin/received", params: {handler: "", status: ""}
+    assert_equal 3, listed_event_ids.length
+  end
+
+  test "offers every configured handler and status as a filter" do
+    get "/admin/received", params: {handler: "PrivateHandler"}
+
+    handlers = css_select("select[name=handler] option").map { |option| option["value"] }
+    assert_equal ["", *Webhukhs.configuration.active_handlers.values.uniq.sort], handlers
+    assert_select "select[name=handler] option[value='']", text: "Any handler"
+    assert_select "select[name=status] option[value='']", text: "Any status"
+    # Clearing the filters keeps the sort
+    assert_select "form.filters a[href=?]", "/admin/received?direction=desc&sort=created_at", text: "Clear"
+    assert_select "select[name=handler] option[selected]", text: "PrivateHandler"
+
+    statuses = css_select("select[name=status] option").map { |option| option["value"] }
+    assert_equal ["", *Webhukhs::ReceivedWebhook.statuses.keys], statuses
+  end
+
+  test "lists a handler configured as a class once, by name" do
+    original_handlers = Webhukhs.configuration.active_handlers
+    Webhukhs.configuration.active_handlers = {a: WebhookTestHandler, b: "WebhookTestHandler"}
+
+    get "/admin/received"
+
+    handlers = css_select("select[name=handler] option").map { |option| option["value"] }
+    assert_equal ["", "WebhookTestHandler"], handlers
+  ensure
+    Webhukhs.configuration.active_handlers = original_handlers
+  end
+
+  test "paginates by #{Webhukhs::Admin::ReceivedWebhooksController::PAGE_SIZE}" do
+    page_size = Webhukhs::Admin::ReceivedWebhooksController::PAGE_SIZE
+    (page_size + 1).times { |i| create_webhook(handler_event_id: "evt-#{i}", created_at: i.minutes.ago) }
+
+    get "/admin/received", params: {sort: "status"}
+    assert_equal page_size, listed_event_ids.length
+    assert_equal "evt-#{page_size}", listed_event_ids.first # all ties on status, so by id
+    assert_select "a[rel=prev]", count: 0
+    assert_select "a[rel=next][href=?]", "/admin/received?page=2&sort=status"
+
+    get "/admin/received", params: {sort: "status", page: 2}
+    assert_equal ["evt-0"], listed_event_ids
+    assert_select "a[rel=next]", count: 0
+    assert_select "a[rel=prev][href=?]", "/admin/received?page=1&sort=status"
+  end
+
+  test "loads one row past the page and no more" do
+    page_size = Webhukhs::Admin::ReceivedWebhooksController::PAGE_SIZE
+    (page_size + 5).times { create_webhook }
+
+    loaded = 0
+    counter = ->(*, payload) { loaded += payload[:record_count] if payload[:class_name] == "Webhukhs::ReceivedWebhook" }
+    ActiveSupport::Notifications.subscribed(counter, "instantiation.active_record") do
+      get "/admin/received"
+    end
+
+    assert_equal page_size + 1, loaded
+  end
+
+  test "shows no next page when the last page is exactly full" do
+    Webhukhs::Admin::ReceivedWebhooksController::PAGE_SIZE.times { create_webhook }
+
+    get "/admin/received"
+
+    assert_select "a[rel=next]", count: 0
+  end
+
+  test "treats a page below 1 as the first page" do
+    create_webhook(handler_event_id: "only")
+
+    get "/admin/received", params: {page: -3}
+
+    assert_equal ["only"], listed_event_ids
+    assert_select "a[rel=prev]", count: 0
+  end
+
+  test "drops the page when changing the sort" do
+    get "/admin/received", params: {page: 3}
+
+    assert_select "th a.sort-link[href=?]", "/admin/received?direction=desc&sort=status"
+  end
+
+  test "says so when there is nothing to list" do
+    get "/admin/received"
+
+    assert_select "div.table-scroll > table.admin-table > thead > tr > th", count: 6
+    assert_select "table.admin-table > tbody > tr > td.empty[colspan='6']", text: "No records."
+  end
+
+  test "colors the status badges" do
+    {
+      "processed" => "status-ok",
+      "error" => "status-bad",
+      "failed_validation" => "status-bad",
+      "received" => "status-waiting",
+      "processing" => "status-waiting",
+      "skipped" => "status-neutral"
+    }.each do |status, css_class|
+      assert_equal css_class, Webhukhs::Admin::ReceivedWebhookPresenter.new(create_webhook(status: status)).status_class
+    end
+  end
+
+  test "shows a JSON body pretty-printed, with the body as sent in a second tab" do
+    create_webhook(handler_event_id: "decoy", body: "not this one")
+    webhook = create_webhook(body: '{"event":"thing.happened","data":{"id":1}}')
+
+    get "/admin/received/#{webhook.id}"
+
+    assert_response :ok
+    assert_select "h1", text: /WebhookTestHandler/
+    assert_select "[role=tab][aria-selected=true]", text: "Pretty"
+    assert_select "[role=tab][aria-selected=false]", text: "As sent"
+    # assert_select squashes whitespace, which is the very thing under test here
+    assert_equal JSON.pretty_generate({"event" => "thing.happened", "data" => {"id" => 1}}),
+      css_select("#body-pretty:not([hidden]) code").text
+    assert_equal '{"event":"thing.happened","data":{"id":1}}', css_select("#body-raw[hidden] code").text
+    assert_select ".flash.alert", count: 0
+  end
+
+  test "shows a body that is not JSON as sent, replacing invalid UTF-8" do
+    webhook = create_webhook(body: "event=thing&broken=\xFF".b)
+
+    get "/admin/received/#{webhook.id}"
+
+    assert_response :ok
+    assert_select "[role=tab]", count: 0
+    assert_select ".flash.alert", text: /not valid JSON/
+    assert_select "pre.body-raw code", text: "event=thing&broken=\u{FFFD}"
+  end
+
+  test "shows a body over the display limit cut off, without pretty-printing it" do
+    limit = Webhukhs::Admin::ReceivedWebhookPresenter::DISPLAY_LIMIT
+    json = %({"padding":"#{"x" * limit}"})
+    webhook = create_webhook(body: json)
+
+    get "/admin/received/#{webhook.id}"
+
+    assert_response :ok
+    assert_select "[role=tab]", count: 0
+    assert_select ".flash.alert", text: "The body was 256 KB, display is truncated"
+    assert_equal json.byteslice(0, limit), css_select("pre.body-raw code").text
+  end
+
+  test "displays a body of exactly the display limit in full" do
+    limit = Webhukhs::Admin::ReceivedWebhookPresenter::DISPLAY_LIMIT
+    presenter = Webhukhs::Admin::ReceivedWebhookPresenter.new(create_webhook(body: "x" * limit))
+
+    assert_false presenter.truncated?
+    assert_equal limit, presenter.body_text.bytesize
+    assert_true Webhukhs::Admin::ReceivedWebhookPresenter.new(create_webhook(body: "x" * (limit + 1))).truncated?
+  end
+
+  test "replaces a character the display limit cuts through" do
+    limit = Webhukhs::Admin::ReceivedWebhookPresenter::DISPLAY_LIMIT
+    presenter = Webhukhs::Admin::ReceivedWebhookPresenter.new(create_webhook(body: ("x" * (limit - 1)) + "é"))
+
+    assert_equal ("x" * (limit - 1)) + "\u{FFFD}", presenter.body_text
+  end
+
+  test "decodes the body without touching the stored bytes" do
+    webhook = create_webhook(body: "caf\xC3\xA9".b).reload
+    presenter = Webhukhs::Admin::ReceivedWebhookPresenter.new(webhook)
+
+    assert_equal "café", presenter.body_text
+    assert_equal Encoding::UTF_8, presenter.body_text.encoding
+    assert_equal Encoding::BINARY, webhook.body.encoding
+  end
+
+  test "shows the request headers sorted by name, with the path parameters as JSON" do
+    webhook = create_webhook(request_headers: {
+      "HTTP_X_SIGNATURE" => "sig",
+      "CONTENT_TYPE" => "application/json",
+      "action_dispatch.request.path_parameters" => {"service_id" => "test"}
+    })
+
+    get "/admin/received/#{webhook.id}"
+
+    rows = css_select("table.admin-table thead:has(th:contains('Header')) + tbody tr").map do |row|
+      row.css("td").map(&:text)
+    end
+    assert_equal [
+      ["CONTENT_TYPE", "application/json"],
+      ["HTTP_X_SIGNATURE", "sig"],
+      ["action_dispatch.request.path_parameters", '{"service_id":"test"}']
+    ], rows
+  end
+
+  test "shows webhooks stored before headers were recorded" do
+    webhook = create_webhook(request_headers: nil)
+
+    get "/admin/received/#{webhook.id}"
+
+    assert_response :ok
+    assert_select "td.empty[colspan='2']", text: "No records."
+  end
+
+  test "renders copy buttons for the identifiers" do
+    webhook = create_webhook(handler_event_id: "evt_123")
+
+    get "/admin/received/#{webhook.id}"
+
+    assert_select "button.btn-copy[type=button][title='Copy to clipboard'][data-copy=?]", webhook.id.to_s
+    assert_select "button.btn-copy[data-copy=?]", "evt_123"
+  end
+
+  test "locks the pages down with a content security policy" do
+    get "/admin/received"
+
+    assert_equal "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; " \
+      "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      response.headers["Content-Security-Policy"]
+  end
+
+  test "serves its own assets, fingerprinted, from under the mount point" do
+    get "/admin/received"
+
+    assert_select "link[rel=stylesheet][href^='/admin/admin.css?s='][integrity^='sha256-']"
+    assert_select "script[type=module][src^='/admin/admin.js?s='][integrity^='sha256-']"
+
+    get "/admin/admin.css"
+    assert_response :ok
+    assert_includes response.body, ".admin-table"
+  end
+end

@@ -1,0 +1,26 @@
+name: Browser tests
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with:
+          chrome-version: stable
+      - name: Click through the admin
+        run: bundle exec rake test:browser
+        env:
+          BROWSER_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}

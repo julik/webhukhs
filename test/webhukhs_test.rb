@@ -81,6 +81,15 @@ class TestWebhukhs < ActionDispatch::IntegrationTest
     assert_equal tf.read, body_json
   end
 
+  test "stores the body of a form-encoded webhook" do
+    # Rails parses the form into params before the handler sees the request, which leaves the body
+    # stream at its end
+    post "/webhukhs/test", params: "event=paid&amount=12.50", headers: {"CONTENT_TYPE" => "application/x-www-form-urlencoded"}
+    assert_response 200
+
+    assert_equal "event=paid&amount=12.50", Webhukhs::ReceivedWebhook.last!.body
+  end
+
   test "accepts a webhook but does not process it if it is invalid" do
     tf = Tempfile.new
     body = {isValid: false, outputToFilename: tf.path}

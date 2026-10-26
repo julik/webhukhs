@@ -2,15 +2,5 @@
 
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in webhukhs.gemspec
+# Development dependencies live in webhukhs.gemspec, so that the Appraisal gemfiles pick them up too
 gemspec
-
-gem "sqlite3"
-gem "sprockets-rails"
-gem "appraisal"
-gem "yard-lint"
-gem "mutant"
-gem "mutant-minitest"
-gem "simplecov", "~> 0.22", require: false
-
-gem "minitest-strict", "~> 1.0"

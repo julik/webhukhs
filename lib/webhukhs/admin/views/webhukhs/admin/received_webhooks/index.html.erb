@@ -1,0 +1,50 @@
+<% content_for :title, "Received webhooks" %>
+<div class="page-heading">
+  <h1>Received webhooks</h1>
+  <%# Off by default, admin.js remembers the choice and refetches the listing while it is on %>
+  <label class="switch">
+    <input type="checkbox" id="auto-refresh" role="switch">
+    Auto-refresh
+  </label>
+</div>
+
+<%= form_tag received_webhooks_path, method: :get, class: "filters" do %>
+  <%= hidden_field_tag :sort, @sort, id: nil %>
+  <%= hidden_field_tag :direction, @direction, id: nil %>
+  <%= select_tag :handler, options_for_select([["Any handler", ""]] + handler_options, params[:handler]), "aria-label": "Handler" %>
+  <%= select_tag :status, options_for_select([["Any status", ""]] + status_options.map { |status, _| [status.humanize, status] }, params[:status]), "aria-label": "Status" %>
+  <%= submit_tag "Filter", name: nil %>
+  <%= link_to "Clear", received_webhooks_path(sort: @sort, direction: @direction) %>
+<% end %>
+
+<%
+  columns = [
+    ["Received", "created_at"],
+    ["Handler", "handler_module_name"],
+    ["Status", "status"],
+    ["Event id", "handler_event_id"],
+    ["Updated", "updated_at"]
+  ].map { |label, column| sort_link(label, column, sort: @sort, direction: @direction) }
+%>
+<div id="received-webhooks">
+<%# The id cell carries the link, and the CSS stretches it over the whole row %>
+<%= admin_table(["Id"] + columns, @webhooks) do |webhook|
+  [
+    link_to(tag.code(webhook.id, class: "cell-ellipsis cell-id", title: webhook.id), received_webhook_path(webhook), class: "row-link"),
+    time_tag(webhook.created_at, webhook.created_at.iso8601),
+    webhook.handler_module_name,
+    tag.span(webhook.status, class: ["badge", webhook.status_class]),
+    tag.code(webhook.handler_event_id, class: "cell-ellipsis", title: webhook.handler_event_id),
+    time_tag(webhook.updated_at, webhook.updated_at.iso8601)
+  ]
+end %>
+
+<nav class="pagination">
+  <% if @page > 1 %>
+    <%= link_to "← Previous", request.query_parameters.merge("page" => @page - 1), rel: "prev" %>
+  <% end %>
+  <% if @next_page %>
+    <%= link_to "Next →", request.query_parameters.merge("page" => @next_page), rel: "next" %>
+  <% end %>
+</nav>
+</div>

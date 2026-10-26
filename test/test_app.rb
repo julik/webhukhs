@@ -46,6 +46,7 @@ Test.establish_database_connection
 Test.define_test_schema
 
 require_relative "../lib/webhukhs"
+require_relative "../lib/webhukhs/admin"
 require_relative "test-webhook-handlers/webhook_test_handler"
 require_relative "test-webhook-handlers/inactive_handler"
 require_relative "test-webhook-handlers/invalid_handler"
@@ -80,6 +81,7 @@ class WebhukhsTestApp < Rails::Application
   routes.append do
     mount Webhukhs::Engine, at: "/webhukhs"
     post "/per-user-webhukhs/:user_id/:service_id" => "webhukhs/receive_webhooks#create"
+    mount Webhukhs::Admin::Engine, at: "/admin"
   end
 end
 

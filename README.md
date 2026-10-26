@@ -72,16 +72,63 @@ end
 
 Now you will be able to accept webhooks on `/webhooks/example` path.
 
+## Admin
+
+Webhukhs comes with a read-only admin for looking at the webhooks you have received: a sortable,
+filterable list, and a page per webhook with its body (pretty-printed when it is JSON) and the
+request headers it arrived with. It is not loaded by default - require it in your Gemfile (it has to be
+loaded before the app boots, so `config/routes.rb` is too late):
+
+```ruby
+gem "webhukhs", require: ["webhukhs", "webhukhs/admin"]
+```
+
+and mount it:
+
+```ruby
+# config/routes.rb
+Rails.application.routes.draw do
+  mount Webhukhs::Admin::Engine, at: "/admin/webhooks"
+end
+```
+
+The admin does no authentication of its own, and webhook bodies tend to carry personal data and
+secrets - so mount it behind whatever guards the rest of your admin. For example, with Devise:
+
+```ruby
+authenticate :user, ->(user) { user.admin? } do
+  mount Webhukhs::Admin::Engine, at: "/admin/webhooks"
+end
+```
+
+or with HTTP basic auth:
+
+```ruby
+webhukhs_admin = Rack::Builder.new do
+  use Rack::Auth::Basic do |username, password|
+    ActiveSupport::SecurityUtils.secure_compare(username, ENV.fetch("ADMIN_USER")) &
+      ActiveSupport::SecurityUtils.secure_compare(password, ENV.fetch("ADMIN_PASSWORD"))
+  end
+  run Webhukhs::Admin::Engine
+end
+mount webhukhs_admin, at: "/admin/webhooks"
+```
+
+The admin brings its own CSS and JS, served by [Assiette](https://github.com/julik/assiette) from
+inside the engine - it does not touch your asset pipeline (Propshaft, Sprockets or anything else) and needs
+no build step.
+
+To try it out, run `bin/dev` from a checkout of this repository. It starts the app in `example`
+with some webhooks seeded, and the admin at http://localhost:3000/admin/webhukhs.
+
 ## More Examples
-- `example` folder contains a demo app with engine fully configured.
+- `example` folder contains a demo app with the engine and the admin fully configured - run it with `bin/dev`.
 - We provide a number of webhook handlers which demonstrate certain features of Webhukhs. You will find them in `handler-examples`.
 
 ## Requirements
 
-This project depends on two dependencies:
-
-- Ruby >= 3.0
-- Rails >= 7.0
+- Ruby >= 3.1
+- Rails >= 7.2
 
 ## Error reporter
 
@@ -100,6 +147,10 @@ end
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+The admin also has a click-through test in a real (headless) Chrome, which `rake test` leaves out.
+Run it with `bundle exec rake test:browser` - it needs Chrome or Chromium installed, and finds it
+by itself or through `BROWSER_PATH`.
 
 ## Contributing
 

@@ -53,6 +53,9 @@ module Webhukhs
         raise "Cannot accept the webhook as the request body is larger than #{Webhukhs.configuration.request_body_size_limit} bytes"
       end
 
+      # Rails parses a form-encoded body into params before the handler gets the request, and
+      # leaves the stream at its end - we would store an empty body without the rewind
+      request_body_io.rewind
       write_attribute("body", request_body_io.read.b)
       write_attribute("request_headers", headers)
     ensure
