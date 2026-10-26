@@ -148,9 +148,9 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
-The admin also has a click-through test in the [Lightpanda](https://lightpanda.io) headless browser, which `rake test` leaves out.
-Run it with `bundle exec rake test:browser` - it finds the `lightpanda` binary on the `PATH` or through `LIGHTPANDA_PATH`,
-and downloads a nightly build into `~/.cache/lightpanda` if it finds neither.
+The admin also has a click-through test in a real (headless) Chrome, which `rake test` leaves out.
+Run it with `bundle exec rake test:browser` - it needs Chrome or Chromium installed, and finds it
+by itself or through `BROWSER_PATH`.
 
 ## Contributing
 

@@ -104,6 +104,11 @@ GEM
     drb (2.2.3)
     erb (6.0.1)
     erubi (1.13.1)
+    ferrum (0.19.1)
+      addressable (~> 2.5)
+      base64 (~> 0.2)
+      concurrent-ruby (~> 1.1)
+      websocket-driver (~> 0.7)
     globalid (1.3.0)
       activesupport (>= 6.1)
     i18n (1.14.8)
@@ -115,10 +120,6 @@ GEM
       reline (>= 0.4.2)
     json (2.18.0)
     language_server-protocol (3.17.0.5)
-    lightpanda (0.1.1)
-      addressable (~> 2.8)
-      concurrent-ruby (~> 1.3)
-      websocket-driver (~> 0.8)
     lint_roller (1.1.0)
     logger (1.7.0)
     loofah (2.25.0)
@@ -331,7 +332,7 @@ PLATFORMS
 
 DEPENDENCIES
   appraisal
-  lightpanda (~> 0.1)
+  ferrum (~> 0.19)
   magic_frozen_string_literal
   minitest (~> 5.0)
   minitest-strict (~> 1.0)
@@ -375,13 +376,13 @@ CHECKSUMS
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   erb (6.0.1) sha256=28ecdd99c5472aebd5674d6061e3c6b0a45c049578b071e5a52c2a7f13c197e5
   erubi (1.13.1) sha256=a082103b0885dbc5ecf1172fede897f9ebdb745a4b97a5e8dc63953db1ee4ad9
+  ferrum (0.19.1) sha256=2e9ab588d24e08b6765a5a349bc5d367e5c09d3bead26270f1f2279ad7a4bc25
   globalid (1.3.0) sha256=05c639ad6eb4594522a0b07983022f04aa7254626ab69445a0e493aa3786ff11
   i18n (1.14.8) sha256=285778639134865c5e0f6269e0b818256017e8cde89993fdfcbfb64d088824a5
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
   irb (1.16.0) sha256=2abe56c9ac947cdcb2f150572904ba798c1e93c890c256f8429981a7675b0806
   json (2.18.0) sha256=b10506aee4183f5cf49e0efc48073d7b75843ce3782c68dbeb763351c08fd505
   language_server-protocol (3.17.0.5) sha256=fd1e39a51a28bf3eec959379985a72e296e9f9acfce46f6a79d31ca8760803cc
-  lightpanda (0.1.1) sha256=95f3c1ba686541df0ae48f98d40135320ed66e7cdcc64f43912df589885b2ff8
   lint_roller (1.1.0) sha256=2c0c845b632a7d172cb849cc90c1bce937a28c5c8ccccb50dfd46a485003cc87
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   loofah (2.25.0) sha256=df5ed7ac3bac6a4ec802df3877ee5cc86d027299f8952e6243b3dac446b060e6

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "lightpanda"
+require "ferrum"
 require "puma"
 require "puma/server"
 
-# Clicks through the admin in Lightpanda, so that what the request tests cannot see - the JS, assets
-# resolving under the mount point - is exercised too. Lightpanda runs the JS against a real DOM, but does
-# no layout, applies no CSS and does not enforce the CSP. Not part of `rake test`, run it with `rake test:browser`.
+# Clicks through the admin in a real Chrome, so that what the request tests cannot see - the JS, the
+# CSP letting it run, assets resolving under the mount point - is exercised too. Not part of `rake test`,
+# run it with `rake test:browser`.
 class AdminClickThrough < ActiveSupport::TestCase
   # The app answers from Puma threads with connections of their own, which would not see rows
   # created inside a test transaction
@@ -26,25 +26,22 @@ class AdminClickThrough < ActiveSupport::TestCase
   setup do
     @base_url = "http://127.0.0.1:#{self.class.server.connected_ports.first}/admin"
     @console_errors = []
-    @failed_requests = []
-    # Lightpanda listens on 9222 unless told otherwise
-    port = TCPServer.open("127.0.0.1", 0) { |socket| socket.addr[1] }
-    @browser = Lightpanda::Browser.new(port: port, timeout: 10)
+    # GitHub's Ubuntu runners do not let Chrome set up its sandbox
+    browser_options = ENV["CI"] ? {"no-sandbox" => nil} : {}
+    @browser = Ferrum::Browser.new(timeout: 10, js_errors: true, browser_options: browser_options)
+    @browser.on("Log.entryAdded") { |params| @console_errors << params.dig("entry", "text") if params.dig("entry", "level") == "error" }
     @browser.on("Runtime.consoleAPICalled") { |params| @console_errors << params["args"].map { |arg| arg["value"] }.join(" ") if params["type"] == "error" }
-    @browser.on("Runtime.exceptionThrown") { |params| @console_errors << params.dig("exceptionDetails", "exception", "description").to_s }
-    @browser.on("Network.responseReceived") do |params|
-      status = params.dig("response", "status")
-      @failed_requests << "#{status} #{params.dig("response", "url")}" if status >= 400
-    end
-    @browser.page_command("Runtime.enable")
-    @browser.page_command("Network.enable")
+    @browser.page.command("Log.enable")
   end
 
   teardown do
+    failed = @browser.network.traffic.filter_map do |exchange|
+      "#{exchange.response.status} #{exchange.request.url}" if exchange.response && exchange.response.status >= 400
+    end
     @browser.quit
     Webhukhs::ReceivedWebhook.delete_all
 
-    assert_empty @failed_requests, "Requests failed"
+    assert_empty failed, "Requests failed"
     assert_empty @console_errors, "The browser logged errors"
   end
 
@@ -71,36 +68,21 @@ class AdminClickThrough < ActiveSupport::TestCase
     result
   end
 
-  def js(expression)
-    @browser.evaluate(expression)
-  end
-
-  def text(selector)
-    js("document.querySelector(#{selector.to_json}).textContent")
-  end
-
-  def texts(selector)
-    js("Array.from(document.querySelectorAll(#{selector.to_json}), (node) => node.textContent.trim())")
-  end
-
-  def count(selector)
-    js("document.querySelectorAll(#{selector.to_json}).length")
-  end
-
-  def click(selector)
-    js("document.querySelector(#{selector.to_json}).click()")
-  end
-
-  def click_and_wait_for_page(selector)
+  def click_and_wait_for_page(node)
     url = @browser.current_url
-    loaded = Concurrent::Event.new
-    on_load = proc { loaded.set }
-    @browser.on("Page.loadEventFired", &on_load)
-    click(selector)
-    flunk "Timed out waiting for #{selector} to leave #{url}" unless loaded.wait(5)
-    refute_equal url, @browser.current_url
-  ensure
-    @browser.off("Page.loadEventFired", on_load)
+    label = node.text.strip
+    # Ferrum clicks at the node's coordinates as they are, and a click below the fold hits nothing
+    node.scroll_into_view
+    node.click
+    wait_for("#{label.inspect} to leave #{url}") { @browser.current_url != url }
+    # The URL changes as soon as the navigation commits, while the new document may still be parsing
+    wait_for("the page after #{label.inspect} to load") { @browser.evaluate("document.readyState") == "complete" }
+    @browser.network.wait_for_idle
+  end
+
+  # In one evaluate, so that auto-refresh swapping the table cannot pull the nodes out from under us
+  def texts(selector)
+    @browser.evaluate("Array.from(document.querySelectorAll(#{selector.to_json}), (node) => node.textContent.trim())")
   end
 
   test "lists, sorts, filters and pages through webhooks" do
@@ -108,90 +90,84 @@ class AdminClickThrough < ActiveSupport::TestCase
     create_webhook(handler_event_id: "the-failed-one", status: "error", created_at: 2.days.ago)
 
     visit "/received"
-    assert_equal "Received webhooks", text("h1")
-    # Lightpanda neither loads stylesheets nor computes styles, so we can only check that ours resolves
-    stylesheet = js(<<~JS)
-      fetch(document.querySelector("link[rel=stylesheet]").href).then((response) => [response.status, response.headers.get("content-type")])
-    JS
-    assert_equal [200, "text/css"], stylesheet
-    assert_equal PAGE_SIZE, count("tbody tr")
+    assert_equal "Received webhooks", @browser.at_css("h1").text
+    # The stylesheet must have made it through the CSP - unstyled, the header would not be a flexbox
+    assert_equal "flex", @browser.evaluate("getComputedStyle(document.querySelector('.admin-header')).display")
+    assert_equal PAGE_SIZE, @browser.css("tbody tr").length
     assert_equal "evt-0", texts("tbody tr td:nth-child(5)").first
 
-    click_and_wait_for_page("th a[href*='sort=created_at']")
+    click_and_wait_for_page(@browser.at_xpath("//th/a[contains(., 'Received')]"))
     assert_includes @browser.current_url, "direction=asc"
     assert_equal "the-failed-one", texts("tbody tr td:nth-child(5)").first
 
-    js(<<~JS)
+    # Not Ferrum's Node#select: it blanks the select by assigning it `undefined` first, which
+    # left it blank on the Chromium snapshot CI got
+    @browser.execute(<<~JS)
       const select = document.querySelector("select[name=status]")
       select.value = "error"
       select.dispatchEvent(new Event("change", {bubbles: true}))
     JS
-    assert_equal "error", js("document.querySelector('select[name=status]').value")
-    click_and_wait_for_page("form.filters input[type=submit]")
+    assert_equal "error", @browser.evaluate("document.querySelector('select[name=status]').value")
+    click_and_wait_for_page(@browser.at_css("form.filters input[type=submit]"))
     assert_equal ["the-failed-one"], texts("tbody tr td:nth-child(5)")
     # The sort survives filtering
     assert_includes @browser.current_url, "direction=asc"
 
-    click_and_wait_for_page("form.filters a")
-    assert_equal "Any status", js("document.querySelector('select[name=status]').selectedOptions[0].text")
+    click_and_wait_for_page(@browser.at_xpath("//form//a[text()='Clear']"))
+    assert_equal "Any status", @browser.evaluate("document.querySelector('select[name=status]').selectedOptions[0].text")
 
-    click_and_wait_for_page("a[rel=next]")
-    assert_equal 1, count("tbody tr")
-    click_and_wait_for_page("a[rel=prev]")
-    assert_equal PAGE_SIZE, count("tbody tr")
+    click_and_wait_for_page(@browser.at_css("a[rel=next]"))
+    assert_equal 1, @browser.css("tbody tr").length
+    click_and_wait_for_page(@browser.at_css("a[rel=prev]"))
+    assert_equal PAGE_SIZE, @browser.css("tbody tr").length
   end
 
-  test "opens a webhook from its row" do
+  test "opens a webhook by clicking anywhere on its row" do
     webhook = create_webhook(handler_event_id: "evt-clicked")
 
     visit "/received"
-    # Lightpanda does no layout, so it cannot tell whether the stretched link really covers the row
-    click_and_wait_for_page("tbody tr .row-link")
+    # The status cell is not a link, but the row link stretched over it takes the click
+    click_and_wait_for_page(@browser.at_css("tbody tr td:nth-child(4)"))
 
     assert @browser.current_url.end_with?("/received/#{webhook.id}"), @browser.current_url
-    assert_includes text("h1"), "WebhookTestHandler"
+    assert_includes @browser.at_css("h1").text, "WebhookTestHandler"
   end
 
   test "switches between the pretty and the as-sent body" do
     webhook = create_webhook(body: '{"event":"thing.happened","data":{"id":1}}')
 
     visit "/received/#{webhook.id}"
-    pretty = -> { js("document.getElementById('body-pretty').hidden") == false }
-    raw = -> { js("document.getElementById('body-raw').hidden") == false }
+    pretty = -> { @browser.evaluate("document.getElementById('body-pretty').hidden") == false }
+    raw = -> { @browser.evaluate("document.getElementById('body-raw').hidden") == false }
     assert pretty.call
     refute raw.call
 
-    click("#body-tab-raw")
+    @browser.at_css("#body-tab-raw").click
     wait_for("the as-sent tab") { raw.call }
     refute pretty.call
-    assert_equal "true", js("document.getElementById('body-tab-raw').getAttribute('aria-selected')")
-    assert_equal '{"event":"thing.happened","data":{"id":1}}', text("#body-raw code")
+    assert_equal "true", @browser.at_css("#body-tab-raw").attribute("aria-selected")
+    assert_equal '{"event":"thing.happened","data":{"id":1}}', @browser.at_css("#body-raw code").text
 
-    js(<<~JS)
-      const tab = document.getElementById("body-tab-raw")
-      tab.focus()
-      tab.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowLeft", bubbles: true}))
-    JS
+    @browser.at_css("#body-tab-raw").focus
+    @browser.keyboard.type(:Left)
     wait_for("the arrow key to go back to the pretty tab") { pretty.call }
-    assert_equal "body-tab-pretty", js("document.activeElement.id")
+    assert_equal "body-tab-pretty", @browser.evaluate("document.activeElement.id")
   end
 
   test "copies to the clipboard" do
     webhook = create_webhook(handler_event_id: "evt-to-copy")
 
     visit "/received/#{webhook.id}"
-    # Lightpanda has no clipboard, so we only check that the right text gets handed to one
-    js(<<~JS)
-      Object.defineProperty(navigator, "clipboard", {value: {writeText: (text) => { window.copied = text; return Promise.resolve() }}})
-    JS
+    # Headless Chrome has no clipboard to grant, so we only check that the right text gets handed to it
+    @browser.execute("navigator.clipboard.writeText = (text) => { window.copied = text; return Promise.resolve() }")
 
-    click("button.btn-copy[data-copy='evt-to-copy']")
-    wait_for("the copy button to flash") { count("button.btn-copy.copied[data-copy='evt-to-copy']") == 1 }
-    assert_equal "evt-to-copy", js("window.copied")
+    @browser.at_css("button.btn-copy[data-copy='evt-to-copy']").click
+    wait_for("the copy button to flash") { @browser.at_css("button.btn-copy.copied[data-copy='evt-to-copy']") }
+    assert_equal "evt-to-copy", @browser.evaluate("window.copied")
 
-    click("button.btn-copy-panel")
-    wait_for("the body to be copied") { js("window.copied") != "evt-to-copy" }
-    assert_equal JSON.pretty_generate({"event" => "thing.happened"}), js("window.copied")
+    @browser.at_css("button.btn-copy-panel").click
+    wait_for("the body to be copied") { @browser.evaluate("window.copied") != "evt-to-copy" }
+    assert_equal JSON.pretty_generate({"event" => "thing.happened"}), @browser.evaluate("window.copied")
   end
 
   test "shows bodies that are not JSON, or too large to display" do
@@ -199,21 +175,21 @@ class AdminClickThrough < ActiveSupport::TestCase
     large = create_webhook(body: "x" * (Webhukhs::Admin::ReceivedWebhookPresenter::DISPLAY_LIMIT + 1))
 
     visit "/received/#{form.id}"
-    assert_equal "This body is not valid JSON, so it is shown as it was sent", text(".flash.alert")
-    assert_equal "event=paid&amount=12.50", text("pre.body-raw code")
-    assert_equal 0, count("[role=tab]")
+    assert_equal "This body is not valid JSON, so it is shown as it was sent", @browser.at_css(".flash.alert").text
+    assert_equal "event=paid&amount=12.50", @browser.at_css("pre.body-raw code").text
+    assert_empty @browser.css("[role=tab]")
 
     visit "/received/#{large.id}"
-    assert_equal "The body was 256 KB, display is truncated", text(".flash.alert")
+    assert_equal "The body was 256 KB, display is truncated", @browser.at_css(".flash.alert").text
   end
 
   test "picks up new webhooks while auto-refresh is on, and remembers the switch" do
     create_webhook(handler_event_id: "evt-before")
 
     visit "/received"
-    switch = -> { js("document.getElementById('auto-refresh').checked") }
+    switch = -> { @browser.evaluate("document.getElementById('auto-refresh').checked") }
     refute switch.call
-    click("#auto-refresh")
+    @browser.at_css("label.switch").click
     wait_for("the switch to turn on") { switch.call }
 
     create_webhook(handler_event_id: "evt-arrived")
@@ -226,7 +202,7 @@ class AdminClickThrough < ActiveSupport::TestCase
     # After a page load only the timer refetches, so this one has to come in through a poll
     create_webhook(handler_event_id: "evt-polled")
     wait_for("the polled webhook to show up", timeout: 8) { texts("tbody tr td:nth-child(5)").include?("evt-polled") }
-    click("#auto-refresh")
+    @browser.at_css("label.switch").click
     wait_for("the switch to turn off") { !switch.call }
   end
 end

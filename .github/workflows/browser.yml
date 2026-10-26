@@ -16,11 +16,11 @@ jobs:
         with:
           ruby-version: "4.0"
           bundler-cache: true
-      - name: Install Lightpanda
-        run: |
-          mkdir -p "$RUNNER_TEMP/lightpanda"
-          curl -fsSL -o "$RUNNER_TEMP/lightpanda/lightpanda" https://github.com/lightpanda-io/browser/releases/download/1.0.2/lightpanda-x86_64-linux
-          chmod +x "$RUNNER_TEMP/lightpanda/lightpanda"
-          echo "LIGHTPANDA_PATH=$RUNNER_TEMP/lightpanda/lightpanda" >> "$GITHUB_ENV"
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with:
+          chrome-version: stable
       - name: Click through the admin
         run: bundle exec rake test:browser
+        env:
+          BROWSER_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
