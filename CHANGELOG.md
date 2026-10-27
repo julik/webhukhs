@@ -5,6 +5,9 @@ This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## Unreleased
 
+### Changed
+- Admin URLs no longer include `/received`.
+
 ## 0.8.1
 
 ### Fixed
