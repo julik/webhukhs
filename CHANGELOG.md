@@ -5,6 +5,9 @@ This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## Unreleased
 
+### Fixed
+- Sort the admin listing by ID by default to avoid a full-table sort.
+
 ## 0.8.0
 ## Added
 - An optional, read-only admin engine (`require "webhukhs/admin"`, mount `Webhukhs::Admin::Engine`) to list,

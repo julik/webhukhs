@@ -121,6 +121,14 @@ no build step.
 To try it out, run `bin/dev` from a checkout of this repository. It starts the app in `example`
 with some webhooks seeded, and the admin at http://localhost:3000/admin/webhukhs.
 
+The list defaults to descending ID order using the existing primary-key index; no extra migration is
+needed. Click **Received** to sort by timestamp instead.
+
+**We strongly recommend against UUIDv4 primary keys.** Use UUIDv7 or auto-incrementing integer IDs
+instead. UUIDv4 IDs are random, so sorting by ID does not reflect creation time, and inserts have
+poorer index locality. Webhukhs generates UUIDv7 when Ruby supports it, but falls back to UUIDv4
+otherwise; use a Ruby with UUIDv7 support if you need UUID primary keys.
+
 ## More Examples
 - `example` folder contains a demo app with the engine and the admin fully configured - run it with `bin/dev`.
 - We provide a number of webhook handlers which demonstrate certain features of Webhukhs. You will find them in `handler-examples`.
