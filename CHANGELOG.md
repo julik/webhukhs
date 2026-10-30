@@ -6,6 +6,7 @@ This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 ## Unreleased
 
 ### Changed
+- The admin gets loaded with Webhukhs, so `require "webhukhs/admin"` is no longer needed - just mount `Webhukhs::Admin::Engine`.
 - Admin URLs no longer include `/received`.
 - Restrict admin sorting to ID, with an ascending/descending toggle, to avoid expensive column sorts.
 - Abbreviate UUIDs to their first and last 4 characters in the admin listing, keeping the full ID on hover.

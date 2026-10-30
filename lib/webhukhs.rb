@@ -2,6 +2,8 @@
 
 require_relative "webhukhs/version"
 require_relative "webhukhs/engine"
+# The engine has to be defined before the app boots, so it can not wait for `mount` to autoload it
+require_relative "webhukhs/admin"
 require_relative "webhukhs/jobs/processing_job"
 require "active_support/core_ext/class/attribute"
 
