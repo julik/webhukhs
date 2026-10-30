@@ -70,7 +70,8 @@ class WebhukhsTestApp < Rails::Application
   config.logger = Logger.new(nil)
   config.autoload_paths << File.dirname(__FILE__) + "/test-webhook-handlers"
   config.root = __dir__
-  config.eager_load = false
+  # Like production would, and so that mutant gets to see the autoloaded classes
+  config.eager_load = true
   config.consider_all_requests_local = true
   config.secret_key_base = "i_am_a_secret"
   config.active_support.cache_format_version = 7.1
